@@ -1,7 +1,9 @@
 import numpy as np
 import numexpr as ne
 import time
-from arrays import rust_array, rust_with_pow, rust_with_div_pow
+from arrays import rust_array, rust_with_pow, rust_with_div_pow, rust_array_par, rust_array_par_pow
+
+n = 10**5
 
 def numpy_array(a, b, c, d):
     return ((a*b)/c)**d
@@ -29,14 +31,16 @@ ne_times = []
 list_times = []
 loop_times = []
 rust_times = []
+rust_par_times = []
 rust_pow_times = []
+rust_par_pow_times = []
 rust_div_pow_times = []
 
 for k in np.arange(1000):
-    a = np.random.rand(1000) * 100
-    b = np.random.rand(1000) * 100
-    c = np.random.rand(1000) * 100
-    d = np.random.rand(1000)
+    a = np.random.rand(n) * 100
+    b = np.random.rand(n) * 100
+    c = np.random.rand(n) * 100
+    d = np.random.rand(n)
 
     start = time.perf_counter_ns()
     list_res = list_comprehension(a, b, c, d)
@@ -57,6 +61,18 @@ for k in np.arange(1000):
     rust_pow_res = rust_with_pow(a, b, c, d)
     t = time.perf_counter_ns() - start
     rust_pow_times.append(t)
+
+
+    start = time.perf_counter_ns()
+    rust_par_res = rust_array_par(a, b, c, d)
+    t = time.perf_counter_ns() - start
+    rust_par_times.append(t)
+
+    start = time.perf_counter_ns()
+    rust_par_pow_res = rust_array_par_pow(a, b, c, d)
+    t = time.perf_counter_ns() - start
+    rust_par_pow_times.append(t)
+
 
     start = time.perf_counter_ns()
     np_res = numpy_array(a, b, c, d)
@@ -79,6 +95,8 @@ for k in np.arange(1000):
     assert(np.allclose(rust_res, divpow_res, rtol=1e-9))
     assert(np.allclose(rust_res, list_res, rtol=1e-9))
     assert(np.allclose(rust_res, loop_res, rtol=1e-9))
+    assert(np.allclose(rust_res, rust_par_res, rtol=1e-9))
+    assert(np.allclose(rust_res, rust_par_pow_res, rtol=1e-9))
 
 numpy_mean = np.array(np_times).mean()
 print("Mean times") 
@@ -89,6 +107,8 @@ print("Dumb Loop:          ", np.array(loop_times).mean(), f" {numpy_mean/np.arr
 print("Rust:               ", np.array(rust_times).mean(), f" {numpy_mean / np.array(rust_times).mean():.3f}x")
 print("Rust+pow:           ", np.array(rust_pow_times).mean(), f" {numpy_mean / np.array(rust_pow_times).mean():.3f}x")
 print("Rust+div+pow:       ", np.array(rust_div_pow_times).mean(), f" {numpy_mean / np.array(rust_div_pow_times).mean():.3f}x")
+print("Rust+par:           ", np.array(rust_par_times).mean(), f" {numpy_mean / np.array(rust_par_times).mean():.3f}x")
+print("Rust+par+pow:       ", np.array(rust_par_pow_times).mean(), f" {numpy_mean / np.array(rust_par_pow_times).mean():.3f}x")
 
 
 
