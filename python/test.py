@@ -1,9 +1,9 @@
 import numpy as np
 import numexpr as ne
 import time
-from arrays import rust_array, rust_with_pow, rust_with_div_pow, rust_array_par, rust_array_par_pow
+from arrays import rust_array, rust_with_pow, rust_with_div_pow, rust_array_par, rust_array_par_pow, rust_array_par_pow_chunk
 
-n = 10**5
+n = 10**3
 
 def numpy_array(a, b, c, d):
     return ((a*b)/c)**d
@@ -34,6 +34,7 @@ rust_times = []
 rust_par_times = []
 rust_pow_times = []
 rust_par_pow_times = []
+rust_par_pow_chunk_times = []
 rust_div_pow_times = []
 
 for k in np.arange(1000):
@@ -73,6 +74,10 @@ for k in np.arange(1000):
     t = time.perf_counter_ns() - start
     rust_par_pow_times.append(t)
 
+    start = time.perf_counter_ns()
+    rust_par_pow_chunk_res = rust_array_par_pow_chunk(a, b, c, d)
+    t = time.perf_counter_ns() - start
+    rust_par_pow_chunk_times.append(t)
 
     start = time.perf_counter_ns()
     np_res = numpy_array(a, b, c, d)
@@ -97,6 +102,7 @@ for k in np.arange(1000):
     assert(np.allclose(rust_res, loop_res, rtol=1e-9))
     assert(np.allclose(rust_res, rust_par_res, rtol=1e-9))
     assert(np.allclose(rust_res, rust_par_pow_res, rtol=1e-9))
+    assert(np.allclose(rust_res, rust_par_pow_chunk_res, rtol=1e-9))
 
 numpy_mean = np.array(np_times).mean()
 print("Mean times") 
@@ -109,6 +115,7 @@ print("Rust+pow:           ", np.array(rust_pow_times).mean(), f" {numpy_mean / 
 print("Rust+div+pow:       ", np.array(rust_div_pow_times).mean(), f" {numpy_mean / np.array(rust_div_pow_times).mean():.3f}x")
 print("Rust+par:           ", np.array(rust_par_times).mean(), f" {numpy_mean / np.array(rust_par_times).mean():.3f}x")
 print("Rust+par+pow:       ", np.array(rust_par_pow_times).mean(), f" {numpy_mean / np.array(rust_par_pow_times).mean():.3f}x")
+print("Rust+par+pow_chunk: ", np.array(rust_par_pow_chunk_times).mean(), f" {numpy_mean / np.array(rust_par_pow_chunk_times).mean():.3f}x")
 
 
 
