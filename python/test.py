@@ -1,9 +1,16 @@
+import sys
 import numpy as np
 import numexpr as ne
+import jax
+from jax import numpy as jnp
+from jax import jit
 import time
 from arrays import rust_array, rust_with_pow, rust_with_div_pow, rust_array_par, rust_array_par_pow, rust_array_par_pow_chunk
 
-n = 10**3
+try:
+    n = int(sys.argv[1])
+except IndexError:
+    n = 10**3
 
 def numpy_array(a, b, c, d):
     return ((a*b)/c)**d
@@ -28,6 +35,7 @@ def dumb_loop(a_array, b_array, c_array, d_array):
 
 np_times = []
 ne_times = []
+jax_times = []
 list_times = []
 loop_times = []
 rust_times = []
@@ -42,6 +50,11 @@ for k in np.arange(1000):
     b = np.random.rand(n) * 100
     c = np.random.rand(n) * 100
     d = np.random.rand(n)
+
+    a_jarray = jnp.array(a)
+    b_jarray = jnp.array(b)
+    c_jarray = jnp.array(c)
+    d_jarray = jnp.array(d)
 
     start = time.perf_counter_ns()
     list_res = list_comprehension(a, b, c, d)
@@ -90,6 +103,12 @@ for k in np.arange(1000):
     ne_times.append(t)
 
     start = time.perf_counter_ns()
+    jax_evaluate = jit(numpy_array)
+    jax_res = jax_evaluate(a_jarray, b_jarray, c_jarray, d_jarray)
+    t = time.perf_counter_ns() - start
+    jax_times.append(t)
+
+    start = time.perf_counter_ns()
     divpow_res = rust_with_div_pow(a, b, c, d)
     t = time.perf_counter_ns() - start
     rust_div_pow_times.append(t)
@@ -103,19 +122,34 @@ for k in np.arange(1000):
     assert(np.allclose(rust_res, rust_par_res, rtol=1e-9))
     assert(np.allclose(rust_res, rust_par_pow_res, rtol=1e-9))
     assert(np.allclose(rust_res, rust_par_pow_chunk_res, rtol=1e-9))
+    assert(np.allclose(rust_res, jax_res, rtol=1e-6))
 
 numpy_mean = np.array(np_times).mean()
 print("Mean times") 
-print("NumPy:              ", numpy_mean, " 1.0x")
-print("NumExpr:            ", np.array(ne_times).mean(), f" {numpy_mean/np.array(ne_times).mean():.3f}x")
-print("List Comprehension: ", np.array(list_times).mean(), f" {numpy_mean/np.array(list_times).mean():.3f}x")
-print("Dumb Loop:          ", np.array(loop_times).mean(), f" {numpy_mean/np.array(loop_times).mean():.3f}x")
-print("Rust:               ", np.array(rust_times).mean(), f" {numpy_mean / np.array(rust_times).mean():.3f}x")
-print("Rust+pow:           ", np.array(rust_pow_times).mean(), f" {numpy_mean / np.array(rust_pow_times).mean():.3f}x")
-print("Rust+div+pow:       ", np.array(rust_div_pow_times).mean(), f" {numpy_mean / np.array(rust_div_pow_times).mean():.3f}x")
-print("Rust+par:           ", np.array(rust_par_times).mean(), f" {numpy_mean / np.array(rust_par_times).mean():.3f}x")
-print("Rust+par+pow:       ", np.array(rust_par_pow_times).mean(), f" {numpy_mean / np.array(rust_par_pow_times).mean():.3f}x")
-print("Rust+par+pow_chunk: ", np.array(rust_par_pow_chunk_times).mean(), f" {numpy_mean / np.array(rust_par_pow_chunk_times).mean():.3f}x")
+print("NumPy:              ", " 1.0x")
+print("NumExpr:            ", f" {numpy_mean/np.array(ne_times).mean():.3f}x")
+print("Jax:                ", f" {numpy_mean/np.array(jax_times).mean():.3f}x")
+print("List Comprehension: ", f" {numpy_mean/np.array(list_times).mean():.3f}x")
+print("Dumb Loop:          ", f" {numpy_mean/np.array(loop_times).mean():.3f}x")
+print("Rust:               ", f" {numpy_mean / np.array(rust_times).mean():.3f}x")
+print("Rust+pow:           ", f" {numpy_mean / np.array(rust_pow_times).mean():.3f}x")
+print("Rust+div+pow:       ", f" {numpy_mean / np.array(rust_div_pow_times).mean():.3f}x")
+print("Rust+par:           ", f" {numpy_mean / np.array(rust_par_times).mean():.3f}x")
+print("Rust+par+pow:       ", f" {numpy_mean / np.array(rust_par_pow_times).mean():.3f}x")
+print("Rust+par+pow_chunk: ", f" {numpy_mean / np.array(rust_par_pow_chunk_times).mean():.3f}x")
+
+print(f"{n}, 1.0, {numpy_mean/np.array(ne_times).mean():.3f}, {numpy_mean/np.array(jax_times).mean():.3f}, {numpy_mean/np.array(list_times).mean():.3f}, {numpy_mean/np.array(loop_times).mean():.3f}, {numpy_mean / np.array(rust_times).mean():.3f}, {numpy_mean / np.array(rust_pow_times).mean():.3f}, {numpy_mean / np.array(rust_div_pow_times).mean():.3f}, {numpy_mean / np.array(rust_par_times).mean():.3f}, {numpy_mean / np.array(rust_par_pow_times).mean():.3f}, {numpy_mean / np.array(rust_par_pow_chunk_times).mean():.3f}")
+
+# print("NumExpr:            ", np.array(ne_times).mean(), f" {numpy_mean/np.array(ne_times).mean():.3f}x")
+# print("Jax:                ", np.array(jax_times).mean(), f" {numpy_mean/np.array(jax_times).mean():.3f}x")
+# print("List Comprehension: ", np.array(list_times).mean(), f" {numpy_mean/np.array(list_times).mean():.3f}x")
+# print("Dumb Loop:          ", np.array(loop_times).mean(), f" {numpy_mean/np.array(loop_times).mean():.3f}x")
+# print("Rust:               ", np.array(rust_times).mean(), f" {numpy_mean / np.array(rust_times).mean():.3f}x")
+# print("Rust+pow:           ", np.array(rust_pow_times).mean(), f" {numpy_mean / np.array(rust_pow_times).mean():.3f}x")
+# print("Rust+div+pow:       ", np.array(rust_div_pow_times).mean(), f" {numpy_mean / np.array(rust_div_pow_times).mean():.3f}x")
+# print("Rust+par:           ", np.array(rust_par_times).mean(), f" {numpy_mean / np.array(rust_par_times).mean():.3f}x")
+# print("Rust+par+pow:       ", np.array(rust_par_pow_times).mean(), f" {numpy_mean / np.array(rust_par_pow_times).mean():.3f}x")
+# print("Rust+par+pow_chunk: ", np.array(rust_par_pow_chunk_times).mean(), f" {numpy_mean / np.array(rust_par_pow_chunk_times).mean():.3f}x")
 
 
 
