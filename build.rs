@@ -1,3 +1,5 @@
 fn main() {
-    println!("cargo:rustc-link-lib=framework=Accelerate");
+    #[cfg(target_os = "macos")] {
+        println!("cargo:rustc-link-lib=framework=Accelerate");
+    }
 }
