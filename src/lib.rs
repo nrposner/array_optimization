@@ -184,15 +184,28 @@ pub fn rust_array_par_pow<'py>(
     let out_arr = unsafe { PyArray1::new(py, a_slice.len(), false)};
     let out_slice = unsafe {out_arr.as_slice_mut().unwrap()};
 
-    py.detach(|| {
-        out_slice.par_iter_mut()
-            .enumerate()
-            .for_each(|(i, out)| {
-                *out = (a_slice[i] * b_slice[i]) / c_slice[i];
-            });
-    });
+    #[cfg(target_os = "macos")]
+    {
+        py.detach(|| {
+            out_slice.par_iter_mut()
+                .enumerate()
+                .for_each(|(i, out)| {
+                    *out = (a_slice[i] * b_slice[i]) / c_slice[i];
+                });
+        });
 
-    let _ = pow_array_in_place(out_slice, d_slice);
+        let _ = pow_array_in_place(out_slice, d_slice);
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        py.detach(|| {
+            out_slice.par_iter_mut()
+                .enumerate()
+                .for_each(|(i, out)| {
+                    *out = ((a_slice[i] * b_slice[i]) / c_slice[i]).powf(d_slice[i]);
+                });
+        });
+    }
 
     out_arr
 }
