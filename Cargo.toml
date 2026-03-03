@@ -12,4 +12,6 @@ crate-type = ["cdylib"]
 numpy = "0.28.0"
 pyo3 = "0.28.0"
 rayon = "1.11.0"
-vforce = "1.0.0"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+vforce = "1.0.1"

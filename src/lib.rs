@@ -1,7 +1,9 @@
 use numpy::{PyArray1, PyReadonlyArray1, PyArrayMethods};
 use pyo3::prelude::*;
-use vforce::arithmetic::{pow_array_in_place, div_array_in_place};
 use rayon::prelude::*;
+
+#[cfg(target_os = "macos")]
+use vforce::arithmetic::{pow_array_in_place, div_array_in_place};
 
 const CHUNK_SIZE: usize = 32768;
 
