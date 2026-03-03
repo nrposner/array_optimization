@@ -15,6 +15,14 @@ except IndexError:
 def numpy_array(a, b, c, d):
     return ((a*b)/c)**d
 
+def numpy_no_alloc_explicit(a, b, c, d):
+    # we need to create an empty array of the same type and shape
+    out = np.empty_like(a)
+    np.multiply(a, b, out=out)
+    np.divide(out, c, out=out)
+    np.power(out, d, out=out)
+    return out
+
 def ne_evaluate(a, b, c, d):
     return ne.evaluate("((a*b)/c)**d")
 
@@ -34,6 +42,7 @@ def dumb_loop(a_array, b_array, c_array, d_array):
     return out_array
 
 np_times = []
+np_ip_times = []
 ne_times = []
 jax_times = []
 list_times = []
@@ -98,6 +107,11 @@ for k in np.arange(1000):
     np_times.append(t)
 
     start = time.perf_counter_ns()
+    np_ip_res = numpy_no_alloc_explicit(a, b, c, d)
+    t = time.perf_counter_ns() - start
+    np_ip_times.append(t)
+
+    start = time.perf_counter_ns()
     ne_res = ne_evaluate(a, b, c, d)
     t = time.perf_counter_ns() - start
     ne_times.append(t)
@@ -115,6 +129,7 @@ for k in np.arange(1000):
 
     assert(np.allclose(rust_res, rust_pow_res, rtol=1e-9))
     assert(np.allclose(rust_res, np_res, rtol=1e-9))
+    assert(np.allclose(rust_res, np_ip_res, rtol=1e-9))
     assert(np.allclose(rust_res, ne_res, rtol=1e-9))
     assert(np.allclose(rust_res, divpow_res, rtol=1e-9))
     assert(np.allclose(rust_res, list_res, rtol=1e-9))
@@ -127,6 +142,7 @@ for k in np.arange(1000):
 numpy_mean = np.array(np_times).mean()
 print("Mean times") 
 print("NumPy:              ", " 1.0x")
+print("NumPy in place:     ", f" {numpy_mean/np.array(np_ip_times).mean():.3f}x")
 print("NumExpr:            ", f" {numpy_mean/np.array(ne_times).mean():.3f}x")
 print("Jax:                ", f" {numpy_mean/np.array(jax_times).mean():.3f}x")
 print("List Comprehension: ", f" {numpy_mean/np.array(list_times).mean():.3f}x")
@@ -138,7 +154,7 @@ print("Rust+par:           ", f" {numpy_mean / np.array(rust_par_times).mean():.
 print("Rust+par+pow:       ", f" {numpy_mean / np.array(rust_par_pow_times).mean():.3f}x")
 print("Rust+par+pow_chunk: ", f" {numpy_mean / np.array(rust_par_pow_chunk_times).mean():.3f}x")
 
-print(f"{n}, 1.0, {numpy_mean/np.array(ne_times).mean():.3f}, {numpy_mean/np.array(jax_times).mean():.3f}, {numpy_mean/np.array(list_times).mean():.3f}, {numpy_mean/np.array(loop_times).mean():.3f}, {numpy_mean / np.array(rust_times).mean():.3f}, {numpy_mean / np.array(rust_pow_times).mean():.3f}, {numpy_mean / np.array(rust_div_pow_times).mean():.3f}, {numpy_mean / np.array(rust_par_times).mean():.3f}, {numpy_mean / np.array(rust_par_pow_times).mean():.3f}, {numpy_mean / np.array(rust_par_pow_chunk_times).mean():.3f}")
+print(f"{n}, 1.0, {numpy_mean/np.array(np_ip_times).mean():.3f}, {numpy_mean/np.array(ne_times).mean():.3f}, {numpy_mean/np.array(jax_times).mean():.3f}, {numpy_mean/np.array(list_times).mean():.3f}, {numpy_mean/np.array(loop_times).mean():.3f}, {numpy_mean / np.array(rust_times).mean():.3f}, {numpy_mean / np.array(rust_pow_times).mean():.3f}, {numpy_mean / np.array(rust_div_pow_times).mean():.3f}, {numpy_mean / np.array(rust_par_times).mean():.3f}, {numpy_mean / np.array(rust_par_pow_times).mean():.3f}, {numpy_mean / np.array(rust_par_pow_chunk_times).mean():.3f}")
 
 # print("NumExpr:            ", np.array(ne_times).mean(), f" {numpy_mean/np.array(ne_times).mean():.3f}x")
 # print("Jax:                ", np.array(jax_times).mean(), f" {numpy_mean/np.array(jax_times).mean():.3f}x")
