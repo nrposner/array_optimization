@@ -7,6 +7,8 @@ import time
 from arrays import rust_array, rust_with_pow, rust_with_div_pow, rust_array_par, rust_array_par_pow, rust_array_par_pow_chunk # ty: ignore[unresolved-import]
 import matplotlib.pyplot as plt
 
+SLOW = False
+
 def numpy_array(a, b, c, d):
     return ((a*b)/c)**d
 
@@ -41,8 +43,9 @@ def bench(n):
     np_ip_times = []
     ne_times = []
     jax_times = []
-    # list_times = []
-    # loop_times = []
+    if SLOW:
+        list_times = []
+        loop_times = []
     rust_times = []
     rust_par_times = []
     rust_pow_times = []
@@ -61,15 +64,16 @@ def bench(n):
         c_jarray = jnp.array(c)
         d_jarray = jnp.array(d)
 
-        # start = time.perf_counter_ns()
-        # list_res = list_comprehension(a, b, c, d)
-        # t = time.perf_counter_ns() - start
-        # list_times.append(t)
-        #
-        # start = time.perf_counter_ns()
-        # loop_res = dumb_loop(a, b, c, d)
-        # t = time.perf_counter_ns() - start
-        # loop_times.append(t)
+        if SLOW:
+            start = time.perf_counter_ns()
+            list_res = list_comprehension(a, b, c, d)
+            t = time.perf_counter_ns() - start
+            list_times.append(t)
+
+            start = time.perf_counter_ns()
+            loop_res = dumb_loop(a, b, c, d)
+            t = time.perf_counter_ns() - start
+            loop_times.append(t)
 
         start = time.perf_counter_ns()
         rust_res = rust_array(a, b, c, d)
@@ -127,8 +131,11 @@ def bench(n):
         assert(np.allclose(rust_res, np_ip_res, rtol=1e-9))
         assert(np.allclose(rust_res, ne_res, rtol=1e-9))
         assert(np.allclose(rust_res, divpow_res, rtol=1e-9))
-        # assert(np.allclose(rust_res, list_res, rtol=1e-9))
-        # assert(np.allclose(rust_res, loop_res, rtol=1e-9))
+
+        if SLOW:
+            assert(np.allclose(rust_res, list_res, rtol=1e-9))
+            assert(np.allclose(rust_res, loop_res, rtol=1e-9))
+
         assert(np.allclose(rust_res, rust_par_res, rtol=1e-9))
         assert(np.allclose(rust_res, rust_par_pow_res, rtol=1e-9))
         assert(np.allclose(rust_res, rust_par_pow_chunk_res, rtol=1e-9))
@@ -139,8 +146,7 @@ def bench(n):
         "np_in_place_time": np.array(np_ip_times).mean(),
         "ne_time": np.array(ne_times).mean(),
         "jax_time": np.array(jax_times).mean(),
-        # "list_time": np.array(list_times).mean(),
-        # "loop_time": np.array(loop_times).mean(),
+
         "rust_time": np.array(rust_times).mean(),
         "rust_par_time": np.array(rust_par_times).mean(),
         "rust_pow_time": np.array(rust_pow_times).mean(),
@@ -148,6 +154,10 @@ def bench(n):
         "rust_par_pow_chunk_time": np.array(rust_par_pow_chunk_times).mean(),
         "rust_div_pow_time": np.array(rust_div_pow_times).mean(),
     }
+
+    if SLOW:
+        mean_times["list_time"] = np.array(list_times).mean()
+        mean_times["loop_time"] = np.array(loop_times).mean(),
 
     return mean_times
 
@@ -159,8 +169,6 @@ def plot_results(all_mean_times):
         "np_in_place_time": "NumPy (in-place)",
         "ne_time": "NumExpr",
         "jax_time": "JAX",
-        # "list_time": "List Comprehension",
-        # "loop_time": "Dumb Loop",
         "rust_time": "Rust",
         "rust_pow_time": "Rust+pow",
         "rust_div_pow_time": "Rust+div+pow",
@@ -169,7 +177,14 @@ def plot_results(all_mean_times):
         "rust_par_pow_chunk_time": "Rust+par+pow_chunk",
     }
 
-    fig, ax = plt.subplots(figsize=(10, 7))
+    if SLOW:
+        labels["list_time"] = "List Comprehension"
+        labels["loop_time"] = "Dumb Loop",
+
+    if SLOW:
+        fig, ax = plt.subplots(figsize=(12, 7))
+    else:
+        fig, ax = plt.subplots(figsize=(10, 7))
 
     for key, label in labels.items():
         ratios = [x[1]["np_time"] / x[1][key] for x in all_mean_times]
