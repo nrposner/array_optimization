@@ -5,7 +5,7 @@ import jax
 from jax import numpy as jnp
 from jax import jit
 import time
-from arrays import rust_array, rust_with_pow, rust_with_div_pow, rust_array_par, rust_array_par_pow, rust_array_par_pow_chunk
+from arrays import rust_array, rust_with_pow, rust_with_div_pow, rust_array_par, rust_array_par_pow, rust_array_par_pow_chunk # ty: ignore[unresolved-import]
 
 try:
     n = int(sys.argv[1])
